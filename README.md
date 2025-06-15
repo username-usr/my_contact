@@ -4,17 +4,15 @@ A full-stack web application for startup assistance, featuring AI-powered chat, 
 
 ## Features
 
-- **AI Chat**: Interactive chat interface with AI assistant
 - **Dashboard**: To-do list, notifications, and email templates
 - **Contacts**: Organized contact management system
 - **Responsive Design**: Works on desktop and mobile devices
-- **MongoDB Integration**: Persistent storage for chat history
+- **SupaBase Integration**: Persistent storage
 
 ## Prerequisites
 
 - Node.js (v14 or higher)
 - npm (v6 or higher)
-- MongoDB Atlas account (or local MongoDB instance)
 
 ## Installation
 
@@ -32,15 +30,8 @@ npm install
 3. Create a `.env` file in the root directory with the following variables:
 ```
 OPENAI_API_KEY=your_api_key_here
-MONGODB_URI=your_mongodb_connection_string
 PORT=3000
 ```
-
-For MongoDB Atlas:
-1. Create a free account at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
-2. Create a new cluster
-3. Click "Connect" and choose "Connect your application"
-4. Copy the connection string and replace `<username>`, `<password>`, and `<dbname>` with your values
 
 ## Running the Application
 
@@ -58,15 +49,12 @@ http://localhost:3000
 
 ```
 startup-assistant-dashboard/
-├── models/
-│   └── Chat.js           # MongoDB Chat model
+│
 ├── public/
-│   ├── index.html        # AI Chat page
 │   ├── dashboard.html    # Dashboard page
 │   ├── contacts.html     # Contacts page
 │   ├── styles.css        # Main stylesheet
 │   └── js/
-│       ├── chat.js       # Chat functionality
 │       ├── dashboard.js  # Dashboard functionality
 │       └── contacts.js   # Contacts functionality
 ├── server.js             # Express server
@@ -76,7 +64,6 @@ startup-assistant-dashboard/
 
 ## API Endpoints
 
-- `POST /api/chat`: Send chat messages and receive AI responses
 - `GET /api/chat/:username`: Get chat history for a specific user
 - `GET /api/dashboard`: Get to-do list, notifications, and templates
 - `GET /api/contacts`: Get organized contact list
@@ -85,8 +72,6 @@ startup-assistant-dashboard/
 ## Development
 
 - The application uses Express.js for the backend
-- MongoDB with Mongoose for data persistence
-- OpenAI API for AI chat responses
 - Frontend is built with vanilla JavaScript
 - Styling is done with CSS custom properties for easy theming
 
