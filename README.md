@@ -1,4 +1,4 @@
-# Startup Assistant Dashboard
+# Network Assistant Dashboard
 
 A full-stack web application for startup assistance, featuring AI-powered chat, task management, and contact organization.
 
