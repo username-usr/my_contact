@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Startup Assistant - Contacts</title>
+    <title>Network Assistant - Contacts</title>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons (star, edit, delete) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
     <!-- Sidebar Navigation -->
     <nav class="sidebar">
         <div class="sidebar-header">
-            <h2>Startup Assistant</h2>
+            <h2>Network Assistant</h2>
         </div>
         <ul class="nav-links">
-            <li><a href="/">AI Chat</a></li>
-            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/">Dashboard</a></li>
             <li><a href="/contacts" class="active">Contacts</a></li>
         </ul>
     </nav>
@@ -24,65 +25,101 @@
     <main class="main-content">
         <h1>Contacts</h1>
         
-        <div class="contacts-container">
-            <!-- Investors Section -->
-            <section class="contact-section">
-                <h2>Investors</h2>
-                <div class="contacts-grid" id="investorsList">
-                    <!-- Investor contacts will be dynamically added here -->
+        <div class="contacts-wrapper">
+            <!-- Contacts Table Section -->
+            <section class="contacts-table-section dashboard-section">
+                <h2>All Contacts</h2>
+                <div class="table-responsive">
+                    <table id="contactsTable">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>How Met</th>
+                                <th>Where Met</th>
+                                <th>Conversation Summary</th>
+                                <th>Person Details</th>
+                                <th>X-Score</th>
+                                <th>Last Interaction</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Contact rows will be dynamically added here -->
+                        </tbody>
+                    </table>
                 </div>
+                <p id="noContactsMessage" class="empty-message" style="display: none;">No contacts to display. Add some from the Dashboard!</p>
             </section>
 
-            <!-- Volunteers Section -->
-            <section class="contact-section">
-                <h2>Volunteers</h2>
-                <div class="contacts-grid" id="volunteersList">
-                    <!-- Volunteer contacts will be dynamically added here -->
+            <!-- Kanban Board Section -->
+            <section class="kanban-section">
+                <h2>Categorize Contacts (Drag & Drop)</h2>
+                <div class="kanban-board" id="kanbanBoard">
+                    <!-- Kanban columns (pools) will be dynamically added here -->
+                    <!-- Each column will represent a contact type -->
                 </div>
-            </section>
-
-            <!-- Mentors Section -->
-            <section class="contact-section">
-                <h2>Mentors</h2>
-                <div class="contacts-grid" id="mentorsList">
-                    <!-- Mentor contacts will be dynamically added here -->
-                </div>
-            </section>
-
-            <!-- Founding Team Section -->
-            <section class="contact-section">
-                <h2>Founding Team</h2>
-                <div class="contacts-grid" id="foundingTeamList">
-                    <!-- Founding team contacts will be dynamically added here -->
-                </div>
-            </section>
-
-            <!-- Collaborators Section -->
-            <section class="contact-section">
-                <h2>Collaborators</h2>
-                <div class="contacts-grid" id="collaboratorsList">
-                    <!-- Collaborator contacts will be dynamically added here -->
-                </div>
-            </section>
-
-            <!-- Tech Team Section -->
-            <section class="contact-section">
-                <h2>Tech Team</h2>
-                <div class="contacts-grid" id="techTeamList">
-                    <!-- Tech team contacts will be dynamically added here -->
-                </div>
-            </section>
-
-            <!-- Others Section -->
-            <section class="contact-section">
-                <h2>Others</h2>
-                <div class="contacts-grid" id="othersList">
-                    <!-- Other contacts will be dynamically added here -->
-                </div>
+                <p id="noKanbanContactsMessage" class="empty-message" style="display: none;">No contacts available for categorization. Add some from the Dashboard!</p>
             </section>
         </div>
     </main>
 
+    <!-- Edit/AI Contact Modal -->
+    <div class="modal" id="contactEditModal">
+        <div class="modal-content contact-modal-content">
+            <span class="close-button" id="closeContactEditModal">&times;</span>
+            <div class="modal-header-with-ai">
+                <button id="aiEditToggleBtn" class="ai-button"><i class="fas fa-star"></i></button>
+                <h2 id="modalTitle">Edit Contact</h2>
+            </div>
+            
+            <!-- Standard Edit Form -->
+            <div id="standardEditForm">
+                <input type="hidden" id="editContactId">
+                <label for="editName">Name:</label>
+                <input type="text" id="editName" class="modal-input">
+                <label for="editHowMet">How Met:</label>
+                <input type="text" id="editHowMet" class="modal-input">
+                <label for="editWhereMet">Where Met:</label>
+                <input type="text" id="editWhereMet" class="modal-input">
+                <label for="editConversationSummary">Conversation Summary:</label>
+                <textarea id="editConversationSummary" class="modal-textarea"></textarea>
+                <label for="editPersonDetails">Person Details:</label>
+                <textarea id="editPersonDetails" class="modal-textarea"></textarea>
+                <label for="editXScore">X-Score (0-10):</label>
+                <input type="number" id="editXScore" class="modal-input" min="0" max="10">
+                <label for="editContactType">Contact Type:</label>
+                <select id="editContactType" class="modal-input">
+                    <option value="Other">Other</option>
+                    <option value="Investor">Investor</option>
+                    <option value="Volunteer">Volunteer</option>
+                    <option value="Mentor">Mentor</option>
+                    <option value="Founding Team">Founding Team</option>
+                    <option value="Collaborator">Collaborator</option>
+                    <option value="Tech Team">Tech Team</option>
+                </select>
+                <button id="saveEditButton" class="modal-button">Save Changes</button>
+            </div>
+
+            <!-- AI-Driven Update Form -->
+            <div id="aiUpdateForm" style="display: none;">
+                <p class="ai-prompt-instruction">Describe the re-connection or new details:</p>
+                <textarea id="aiPromptInput" class="modal-textarea" rows="6" placeholder="e.g., 'Just had a great call with John about funding. He showed keen interest and offered to introduce me to another VC.', or 'Mary changed her role to Marketing Director at XYZ Corp.'"></textarea>
+                <div class="radio-options">
+                    <label>
+                        <input type="radio" name="aiUpdateType" value="reconnection" checked> Re-connection
+                    </label>
+                    <label>
+                        <input type="radio" name="aiUpdateType" value="details_change"> Change of Details
+                    </label>
+                </div>
+                <button id="sendAiPromptButton" class="modal-button">Process with AI</button>
+                <div id="aiUpdateResponse" class="ai-response-display" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Required for drag-and-drop -->
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
     <script src="js/contacts.js"></script>
 </body>
-</html> 
+</html>

@@ -1,56 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Startup Assistant - Dashboard</title>
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-</head>
-<body>
-    <!-- Sidebar Navigation -->
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Network Assistant - Dashboard</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
     <nav class="sidebar">
-        <div class="sidebar-header">
-            <h2>Startup Assistant</h2>
-        </div>
-        <ul class="nav-links">
-            <li><a href="/">AI Chat</a></li>
-            <li><a href="/dashboard" class="active">Dashboard</a></li>
-            <li><a href="/contacts">Contacts</a></li>
-        </ul>
+      <div class="sidebar-header">
+        <h2>Network Assistant</h2>
+      </div>
+      <ul class="nav-links">
+        <li><a href="/" class="active">Dashboard</a></li>
+        <li><a href="/contacts">Contacts</a></li>
+      </ul>
     </nav>
 
-    <!-- Main Content -->
     <main class="main-content">
+      <div class="main-header">
         <h1>Dashboard</h1>
-        
-        <div class="dashboard-grid">
-            <!-- To-Do List Section -->
-            <section class="todo-section">
-                <h2>To-Do List</h2>
-                <div id="todoList">
-                    <!-- To-do items will be dynamically added here -->
-                </div>
-            </section>
+        <button id="addContactBtn" class="add-button">+ Add Contact</button>
+      </div>
 
-            <!-- Notifications Section -->
-            <section class="notifications-section">
-                <h2>Notifications</h2>
-                <div id="notifications">
-                    <!-- Notifications will be dynamically added here -->
-                </div>
-            </section>
+      <div class="dashboard-grid">
+        <section class="dashboard-section todo-section">
+          <div class="section-header">
+            <h2>To-Do List</h2>
+            <div class="section-header-todo">
+              <button id="addTodoBtn" class="add-button-small"></button>
+            </div>
+          </div>
+          <div id="todoList"></div>
+        </section>
 
-            <!-- Email Templates Section -->
-            <section class="templates-section">
-                <h2>Email Templates & Quick Call Points</h2>
-                <div id="templates">
-                    <!-- Templates will be dynamically added here -->
-                </div>
-            </section>
-        </div>
+        <section class="dashboard-section notifications-section">
+          <h2>Notifications</h2>
+          <div id="notifications"></div>
+        </section>
+
+        <section class="dashboard-section templates-section">
+          <h2>Email Templates & Quick Call Points</h2>
+          <div id="templates"></div>
+        </section>
+      </div>
     </main>
 
+    <div class="modal" id="contactInputModal">
+      <div class="modal-content contact-modal-content">
+        <span class="close-button" id="closeContactInputModal">&times;</span>
+        <h2>Add New Contact (AI-Guided)</h2>
+        <div class="contact-chat-messages" id="contactChatMessages">
+          <div class="message ai">
+            <div class="message-content">
+              Welcome! Please tell me about the person you met. Include their
+              name, how you met, where you met, and a brief summary of your
+              conversation.
+            </div>
+            <div class="message-timestamp"></div>
+          </div>
+        </div>
+        <div class="contact-chat-input">
+          <input
+            type="text"
+            id="contactMessageInput"
+            placeholder="Type information here..."
+          />
+          <button id="sendContactMessageButton">Send</button>
+        </div>
+        <button
+          id="saveContactButton"
+          class="save-contact-button"
+          style="display: none; margin-top: 10px"
+        >
+          Save Contact
+        </button>
+      </div>
+    </div>
+
+    <div class="modal" id="addTodoModal">
+      <div class="modal-content">
+        <span class="close-button" id="closeTodoModal">&times;</span>
+        <h2>Add New To-Do Item</h2>
+        <input
+          type="text"
+          id="todoDescriptionInput"
+          placeholder="To-Do description"
+          class="modal-input"
+        />
+        <button id="saveTodoButton" class="modal-button">Save To-Do</button>
+      </div>
+    </div>
+
     <script src="js/dashboard.js"></script>
-</body>
-</html> 
+  </body>
+</html>
