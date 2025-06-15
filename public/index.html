@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Startup Assistant - AI Chat</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2>Startup Assistant</h2>
+        </div>
+        <ul class="nav-links">
+            <li><a href="/" class="active">AI Chat</a></li>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/contacts">Contacts</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages">
+                <!-- Messages will be dynamically added here -->
+            </div>
+            <div class="chat-input">
+                <input type="text" id="messageInput" placeholder="Type your message...">
+                <button id="sendButton">Send</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Username Modal -->
+    <div class="modal" id="usernameModal">
+        <div class="modal-content">
+            <h2>Welcome to Startup Assistant</h2>
+            <p>Please enter your name to get started:</p>
+            <input type="text" id="usernameInput" placeholder="Your name">
+            <button id="startChatButton">Start Chatting</button>
+        </div>
+    </div>
+
+    <script src="js/chat.js"></script>
+</body>
+</html> 

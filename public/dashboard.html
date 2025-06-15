@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Startup Assistant - Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h2>Startup Assistant</h2>
+        </div>
+        <ul class="nav-links">
+            <li><a href="/">AI Chat</a></li>
+            <li><a href="/dashboard" class="active">Dashboard</a></li>
+            <li><a href="/contacts">Contacts</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <h1>Dashboard</h1>
+        
+        <div class="dashboard-grid">
+            <!-- To-Do List Section -->
+            <section class="todo-section">
+                <h2>To-Do List</h2>
+                <div id="todoList">
+                    <!-- To-do items will be dynamically added here -->
+                </div>
+            </section>
+
+            <!-- Notifications Section -->
+            <section class="notifications-section">
+                <h2>Notifications</h2>
+                <div id="notifications">
+                    <!-- Notifications will be dynamically added here -->
+                </div>
+            </section>
+
+            <!-- Email Templates Section -->
+            <section class="templates-section">
+                <h2>Email Templates & Quick Call Points</h2>
+                <div id="templates">
+                    <!-- Templates will be dynamically added here -->
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="js/dashboard.js"></script>
+</body>
+</html> 
