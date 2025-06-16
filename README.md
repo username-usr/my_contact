@@ -1,3 +1,4 @@
+# *submitting for Hack the Vibe - 2025*
 # Network Assistant Dashboard
 
 A full-stack web application designed to assist startups and professionals in managing their networks, tasks, and communications efficiently. The application features a sleek dark-themed UI, a tree-like interaction timeline for contact management, a dashboard with to-do lists, notifications, email templates, and a Kanban board for task organization. It integrates AI-powered chat for enhanced user interaction and uses Supabase for persistent storage.
