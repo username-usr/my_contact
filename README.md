@@ -29,7 +29,7 @@ npm install
 
 3. Create a `.env` file in the root directory with the following variables:
 ```
-OPENAI_API_KEY=your_api_key_here
+Gemini_API_Key=your_api_key_here
 PORT=3000
 ```
 
@@ -43,23 +43,6 @@ npm run dev
 2. Open your browser and navigate to:
 ```
 http://localhost:3000
-```
-
-## Project Structure
-
-```
-startup-assistant-dashboard/
-│
-├── public/
-│   ├── dashboard.html    # Dashboard page
-│   ├── contacts.html     # Contacts page
-│   ├── styles.css        # Main stylesheet
-│   └── js/
-│       ├── dashboard.js  # Dashboard functionality
-│       └── contacts.js   # Contacts functionality
-├── server.js             # Express server
-├── package.json          # Project dependencies
-└── README.md            # This file
 ```
 
 ## API Endpoints
