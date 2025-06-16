@@ -50,45 +50,42 @@ app.post('/api/add-contact-ai', async (req, res) => {
             return res.status(400).json({ error: 'Username and message are required' });
         }
 
-        const systemPrompt = `You are an AI assistant specialized in extracting contact information efficiently and contextually. Your goal is to collect the following required fields about a person the user met:
-        - Name (the person's full name, e.g., "Emily Roberts")
-        - How Met (how the user met them, e.g., "introduced by a mutual friend" or "at a conference")
-        - Where Met (general location or context, e.g., "Startup networking event" or "Cisco event in Chennai")
-        - Conversation Summary (a brief overview of the discussion, e.g., "Talked about scaling SaaS companies.")
+        const systemPrompt = `You are an AI assistant specialized in extracting contact information and evaluating relationship potential with semantic understanding. Your goal is to collect the following required fields about a person the user met:
+        - Name (e.g., "Emily Roberts")
+        - How Met (e.g., "introduced by a mutual friend")
+        - Where Met (e.g., "Startup networking event")
+        - Conversation Summary (e.g., "Talked about scaling SaaS companies.")
         Optional fields:
-        - Person Details (additional notes about the person, e.g., role, expertise, interests, or impressions like "knowledgeable in growth strategies" or "seems very experienced")
-        - X Score (an integer from 0-10, representing relationship potential. Calculate based on metrics below.)
-        - Contact Type (Investor, Volunteer, Mentor, Founding Team, Collaborator, Tech Team, Other. Default to 'Other' if unsure.)
+        - Person Details (e.g., "knowledgeable in growth strategies")
+        - X Score (1-100, calculated based on metrics below)
+        - Contact Type (Investor, Volunteer, Mentor, Founding Team, Collaborator, Tech Team, Other; default: 'Other')
 
         **Rules**:
-        - Analyze the user's current input: "${message}" and all previously collected data: ${JSON.stringify(collectedContactData || {})}.
-        - Consolidate all inputs to fill required fields. Recognize semantic equivalents (e.g., "through my investor" = "through mutual connection").
-        - For Where Met, accept general locations (e.g., "Startup networking event") and append clarifying details (e.g., "event hall" → "Startup networking event, event hall"). Do not ask for overly specific details like "near the stage" or "specific booth".
-        - Accept short but valid conversation summaries (e.g., "Talked about SaaS.") as complete.
-        - For Person Details, extract any additional information about the person, such as their expertise, role, impressions, or characteristics (e.g., "knowledgeable in growth strategies" or "very experienced"). If no such details are provided, leave Person Details as null.
-        - Do not ask for a field if it’s already provided in collectedContactData or current input. Check for synonyms or partial matches.
-        - If a required field is missing, ask a specific question about the *most critical* missing field. Include a 1-2 sentence example.
-        - Limit questions to a maximum of 3 rounds (check questionCount: ${questionCount}).
-        - Set 'readyToSave: true' if all required fields have minimal valid data or after 3 questions.
-        - If questionCount == 2 (third question), include in aiResponse: "This is the final question. You can save the contact afterward."
-        - Calculate X Score (0-10) using these metrics:
-          - Professional Relevance (0-4): Based on conversation topics (e.g., SaaS, AI = 3, generic = 1), contact type (e.g., Investor/Collaborator = +1), and person details (e.g., expertise in growth strategies = +0.5).
-          - Interaction Strength (0-3): Based on meeting context (e.g., mutual friend introduction = 2.5, casual encounter = 1).
-          - Potential Impact (0-3): Based on implied outcomes (e.g., collaboration on user acquisition = 2.5, no clear outcome = 1).
-          - Example: "Introduced by a friend at a startup event, discussed SaaS scaling, knowledgeable in growth strategies" → 3.5 (SaaS/expertise) + 2.5 (friend intro) + 2.5 (collaboration) = 8.5/10.
-        - Explain X Score in aiResponse (e.g., "X-Score: 8.5/10 = 3.5 (SaaS/expertise) + 2.5 (friend intro) + 2.5 (collaboration)").
-        - If all required fields are filled, confirm with: "All details provided! X-Score: [score]/10 = [breakdown]. Ready to save?"
-        - Format your response as a JSON string with:
-          - "aiResponse": Your message to the user (question or confirmation).
-          - "extractedData": A JSON object with all extracted fields, including previous data.
-          - "readyToSave": Boolean indicating if the contact is ready to save.
-          - "missingFields": Array of missing required fields.
-          - "xScoreAssigned": Boolean indicating if an X Score was assigned.
+        - First, perform semantic analysis on the user's input: "${message}" and previously collected data: ${JSON.stringify(collectedContactData || {})}.
+        - Deduce details to tick virtual checkboxes for six X-Score categories:
+          1. Professional Relevance (0-16.67): Tick "Relevant industry" (e.g., tech, finance) and "Specific expertise" (e.g., growth strategies).
+          2. Interaction Strength (0-16.67): Tick "Strong introduction" (e.g., via trusted contact) and "Engaged conversation" (e.g., in-depth).
+          3. Potential Impact (0-16.67): Tick "Clear collaboration opportunity" (e.g., project partnership) and "High influence" (e.g., decision-maker).
+          4. Personal Connection (0-16.67): Tick "Shared interests" (e.g., hobbies) and "Positive rapport" (e.g., friendly demeanor).
+          5. Contact Influence (0-16.67): Tick "Wide network" (e.g., many connections) and "High authority" (e.g., C-level executive).
+          6. Actionable Next Steps (0-16.67): Tick "Defined follow-up" (e.g., call scheduled) and "Resources shared" (e.g., article sent).
+        - Assign scores: 2/2 checkboxes = 16.67, 1/2 = 8.33, 0/2 = 0 per category. Sum for total X-Score (1-100, min 1).
+        - Explain X-Score breakdown in aiResponse (e.g., "X-Score: 85/100 = 16.67 (Professional Relevance: tech, expertise) + ...").
+        - Do not ask for fields already provided. Limit questions to 3 rounds (questionCount: ${questionCount}).
+        - Set readyToSave: true if all required fields are filled or after 3 questions.
+        - If questionCount == 2, include: "This is the final question. You can save the contact afterward."
+        - Format response as JSON with:
+          - aiResponse: Message to user (question or confirmation).
+          - extractedData: All extracted fields.
+          - readyToSave: Boolean.
+          - missingFields: Array of missing required fields.
+          - xScoreAssigned: Boolean.
 
-        **Question Examples**:
-        - Missing Name: {"aiResponse": "What was the name of the person you met? For example, was it Emily Roberts?", "extractedData": {"how_met": "Conference"}, "readyToSave": false, "missingFields": ["name", "where_met", "conversation_summary"], "xScoreAssigned": false}
-        - Missing How Met: {"aiResponse": "How did you meet ${collectedContactData?.name}? For example, was it through a friend or at an event?", "extractedData": {"name": "Emily Roberts", "where_met": "Startup event", "conversation_summary": "Talked about SaaS."}, "readyToSave": false, "missingFields": ["how_met"], "xScoreAssigned": false}
-        - Complete Data: {"aiResponse": "All details provided! X-Score: 8.5/10 = 3.5 (SaaS/expertise) + 2.5 (friend intro) + 2.5 (collaboration). Ready to save?", "extractedData": {"name": "Emily Roberts", "how_met": "Introduced by a friend", "where_met": "Startup networking event", "conversation_summary": "Talked about SaaS scaling.", "person_details": "Knowledgeable in growth strategies", "x_score": 8.5, "contact_type": "Collaborator"}, "readyToSave": true, "missingFields": [], "xScoreAssigned": true}
+        **Example**:
+        - Input: "Met Emily at SaaS conference, she’s a growth expert, we hit it off, planned follow-up."
+        - Checkboxes: Professional Relevance (tech, expertise: 16.67), Interaction Strength (engaged: 8.33), Potential Impact (collaboration: 8.33), Personal Connection (rapport: 8.33), Contact Influence (none: 0), Actionable Next Steps (follow-up: 8.33).
+        - X-Score: 50/100.
+        - Response: {"aiResponse": "What was Emily’s name?", "extractedData": {"where_met": "SaaS conference", "x_score": 50}, ...}
         `;
 
         const userMessage = `Current input: "${message}". Question count: ${questionCount}. Previously collected data: ${JSON.stringify(collectedContactData || {})}`;
@@ -110,12 +107,11 @@ app.post('/api/add-contact-ai', async (req, res) => {
             console.error("Failed to parse AI response as JSON:", aiResponseContent, parseError);
             return res.status(500).json({
                 success: false,
-                error: 'AI did not return a valid JSON response. Please try again or rephrase.',
+                error: 'AI did not return a valid JSON response.',
                 aiResponse: aiResponseContent
             });
         }
 
-        // Increment question count, reset to 0 if readyToSave
         const newQuestionCount = parsedResponse.readyToSave ? 0 : Math.min(questionCount + 1, 3);
 
         res.json({
@@ -151,18 +147,17 @@ app.post('/api/save-contact', async (req, res) => {
         const initial_y_factor_decay = 1.0;
         const current_timestamp = new Date().toISOString();
 
-        // Insert the contact into the contacts table
         const { data: contactDataResult, error: contactError } = await supabase
             .from('contacts')
             .insert([
                 {
-                    user_id: username, // username is a string (e.g., 'guest_user')
+                    user_id: username,
                     name: name || 'Unknown',
                     how_met: how_met || 'Not specified',
                     where_met: where_met || 'Not specified',
                     conversation_summary: conversation_summary || 'No summary provided',
                     person_details: person_details || null,
-                    x_score: x_score !== undefined ? parseInt(x_score) : 0,
+                    x_score: x_score !== undefined ? Math.max(1, parseInt(x_score)) : 1,
                     y_factor_decay: initial_y_factor_decay,
                     last_interaction_date: current_timestamp,
                     contact_type: contact_type || 'Other'
@@ -177,7 +172,6 @@ app.post('/api/save-contact', async (req, res) => {
 
         const contact = contactDataResult[0];
 
-        // Insert the initial interaction into the contact_interactions table
         const { error: interactionError } = await supabase
             .from('contact_interactions')
             .insert([
@@ -187,7 +181,7 @@ app.post('/api/save-contact', async (req, res) => {
                     interaction_date: current_timestamp,
                     conversation_summary: conversation_summary || 'No summary provided',
                     person_details: person_details || null,
-                    x_score: x_score !== undefined ? parseInt(x_score) : 0,
+                    x_score: x_score !== undefined ? Math.max(1, parseInt(x_score)) : 1,
                     contact_type: contact_type || 'Other'
                 }
             ]);
@@ -218,7 +212,6 @@ app.get('/api/contacts/timeline/:id', async (req, res) => {
             return res.status(400).json({ error: 'Contact ID and username are required.' });
         }
 
-        // Fetch the contact to ensure it belongs to the user
         const { data: contact, error: contactError } = await supabase
             .from('contacts')
             .select('id')
@@ -231,7 +224,6 @@ app.get('/api/contacts/timeline/:id', async (req, res) => {
             return res.status(404).json({ success: false, error: 'Contact not found or unauthorized.' });
         }
 
-        // Fetch the timeline (interactions) for the contact
         const { data: interactions, error: interactionError } = await supabase
             .from('contact_interactions')
             .select('interaction_date, conversation_summary, person_details, x_score, contact_type')
@@ -259,6 +251,10 @@ app.post('/api/contacts/update', async (req, res) => {
 
         if (!id || !username || !updatedData) {
             return res.status(400).json({ success: false, error: 'Missing contact ID, username, or update data.' });
+        }
+
+        if (updatedData.x_score) {
+            updatedData.x_score = Math.max(1, parseInt(updatedData.x_score));
         }
 
         const { data, error } = await supabase
@@ -312,35 +308,38 @@ app.post('/api/contacts/ai-update', async (req, res) => {
         const current_timestamp = new Date().toISOString();
 
         if (updateType === 'reconnection') {
-            aiPromptContent = `You are an AI assistant helping a user manage their contacts. The user is providing a summary of a recent 'reconnection' conversation with "${currentContact.name}".
-            Analyze the following conversation summary: "${prompt}"
-            Based on this, re-evaluate their X-Score (0-10, higher is better potential) using these metrics:
-            - Professional Relevance (0-4): Based on topics (e.g., SaaS, AI = 3, generic = 1), contact type (e.g., Investor = +1), and person details (e.g., expertise = +0.5).
-            - Interaction Strength (0-3): Based on context (e.g., mutual introduction = 2.5, casual = 1).
-            - Potential Impact (0-3): Based on outcomes (e.g., collaboration = 2.5, no outcome = 1).
-            Suggest a new Y-Factor (0.0-1.0, lower is better decay).
-            Update 'last_interaction_date' to now.
-            Update 'conversation_summary' with the new summary.
-            Update 'person_details' if new details are provided.
-            Update 'contact_type' if applicable.
-            Explain the X-Score breakdown in 'aiResponse'.
-            Format your response as a JSON string with "aiResponse" and "updatedFields" (with 'conversation_summary', 'person_details', 'x_score', 'y_factor_decay', 'last_interaction_date', 'contact_type').
+            aiPromptContent = `You are an AI assistant managing contacts with semantic understanding. Analyze the reconnection conversation with "${currentContact.name}": "${prompt}".
+            Deduce details to tick virtual checkboxes for six X-Score categories (1-100 total):
+            1. Professional Relevance (0-16.67): "Relevant industry", "Specific expertise".
+            2. Interaction Strength (0-16.67): "Strong introduction", "Engaged conversation".
+            3. Potential Impact (0-16.67): "Clear collaboration opportunity", "High influence".
+            4. Personal Connection (0-16.67): "Shared interests", "Positive rapport".
+            5. Contact Influence (0-16.67): "Wide network", "High authority".
+            6. Actionable Next Steps (0-16.67): "Defined follow-up", "Resources shared".
+            Scores: 2/2 checkboxes = 16.67, 1/2 = 8.33, 0/2 = 0 per category. Min X-Score: 1.
+            Suggest new Y-Factor (0.0-1.0, higher for strong interactions).
+            Update last_interaction_date, conversation_summary, person_details, contact_type if applicable.
+            Explain X-Score breakdown in aiResponse.
+            Format response as JSON with "aiResponse" and "updatedFields".
 
-            Example: {"aiResponse": "Great! Interaction with Emily Roberts was strong. X-Score: 8.5/10 = 3.5 (SaaS/expertise) + 2.5 (friend intro) + 2.5 (collaboration).", "updatedFields": {"conversation_summary": "Discussed new SaaS strategies", "person_details": "Expert in SaaS", "x_score": 8.5, "y_factor_decay": 0.1, "last_interaction_date": "2025-06-16T11:41:00Z", "contact_type": "Collaborator"}}`;
+            Example: {"aiResponse": "X-Score: 85/100 = 16.67 (Professional Relevance: tech, expertise) + ...", "updatedFields": {"x_score": 85, "y_factor_decay": 0.9, ...}}`;
         } else if (updateType === 'details_change') {
-            aiPromptContent = `You are an AI assistant helping a user update contact details for "${currentContact.name}".
+            aiPromptContent = `You are an AI assistant updating contact details for "${currentContact.name}".
             Current details: ${JSON.stringify(currentContact)}.
-            New information: "${prompt}"
-            Extract updated fields (name, how_met, where_met, conversation_summary, person_details) that have *changed*.
-            For person_details, include any new information about expertise, role, or impressions (e.g., "knowledgeable in growth strategies").
-            Re-evaluate X-Score (0-10) using:
-            - Professional Relevance (0-4): Based on topics, contact type, and person details.
-            - Interaction Strength (0-3): Based on meeting context.
-            - Potential Impact (0-3): Based on outcomes.
-            Explain updated fields and X-Score breakdown in 'aiResponse'.
-            Format your response as a JSON string with "aiResponse" and "updatedFields" (with changed fields and 'x_score').
+            New information: "${prompt}".
+            Extract changed fields (name, how_met, where_met, conversation_summary, person_details).
+            Re-evaluate X-Score (1-100) using six categories:
+            1. Professional Relevance (0-16.67): "Relevant industry", "Specific expertise".
+            2. Interaction Strength (0-16.67): "Strong introduction", "Engaged conversation".
+            3. Potential Impact (0-16.67): "Clear collaboration opportunity", "High influence".
+            4. Personal Connection (0-16.67): "Shared interests", "Positive rapport".
+            5. Contact Influence (0-16.67): "Wide network", "High authority".
+            6. Actionable Next Steps (0-16.67): "Defined follow-up", "Resources shared".
+            Scores: 2/2 checkboxes = 16.67, 1/2 = 8.33, 0/2 = 0 per category. Min X-Score: 1.
+            Explain updated fields and X-Score in aiResponse.
+            Format response as JSON with "aiResponse" and "updatedFields".
 
-            Example: {"aiResponse": "Updated person details. X-Score: 8.5/10 = 3.5 (SaaS/expertise) + 2.5 (friend intro) + 2.5 (collaboration).", "updatedFields": {"person_details": "Knowledgeable in growth strategies", "x_score": 8.5}}`;
+            Example: {"aiResponse": "X-Score: 85/100 = 16.67 (Professional Relevance: tech, expertise) + ...", "updatedFields": {"person_details": "Expert in SaaS", "x_score": 85}}`;
         } else {
             return res.status(400).json({ success: false, error: 'Invalid update type.' });
         }
@@ -370,7 +369,10 @@ app.post('/api/contacts/ai-update', async (req, res) => {
         }
 
         if (Object.keys(updateData).length > 0) {
-            // Update the contact in the contacts table
+            if (updateData.x_score) {
+                updateData.x_score = Math.max(1, parseInt(updateData.x_score));
+            }
+
             const { data: updatedContact, error: updateError } = await supabase
                 .from('contacts')
                 .update(updateData)
@@ -384,7 +386,6 @@ app.post('/api/contacts/ai-update', async (req, res) => {
                 throw new Error('Failed to save AI-suggested updates to contact.');
             }
 
-            // If this is a reconnection, save the interaction to the timeline
             if (updateType === 'reconnection') {
                 const { error: interactionError } = await supabase
                     .from('contact_interactions')
@@ -395,7 +396,7 @@ app.post('/api/contacts/ai-update', async (req, res) => {
                             interaction_date: current_timestamp,
                             conversation_summary: updateData.conversation_summary || currentContact.conversation_summary,
                             person_details: updateData.person_details || currentContact.person_details,
-                            x_score: updateData.x_score !== undefined ? parseInt(updateData.x_score) : currentContact.x_score,
+                            x_score: updateData.x_score !== undefined ? Math.max(1, parseInt(updateData.x_score)) : currentContact.x_score,
                             contact_type: updateData.contact_type || currentContact.contact_type
                         }
                     ]);
@@ -436,13 +437,58 @@ app.delete('/api/contacts/delete/:id', async (req, res) => {
             return res.status(500).json({ success: false, error: 'Failed to delete contact.' });
         }
 
-        // Note: Interactions are automatically deleted due to ON DELETE CASCADE
-
         res.json({ success: true, message: 'Contact deleted successfully!' });
 
     } catch (error) {
         console.error('Error in /api/contacts/delete endpoint:', error);
         res.status(500).json({ success: false, error: 'An error occurred while deleting the contact.' });
+    }
+});
+
+// Endpoint to update Y-Factor Decay
+app.post('/api/update-decay', async (req, res) => {
+    try {
+        const { username } = req.body;
+        if (!username) {
+            return res.status(400).json({ error: 'Username is required.' });
+        }
+
+        const { data: contacts, error: contactError } = await supabase
+            .from('contacts')
+            .select('id, x_score, y_factor_decay, last_interaction_date')
+            .eq('user_id', username);
+
+        if (contactError) {
+            console.error('Supabase fetch contacts error:', contactError);
+            throw new Error('Failed to fetch contacts for decay update.');
+        }
+
+        const NOW = new Date();
+        const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+        for (const contact of contacts) {
+            const lastInteraction = new Date(contact.last_interaction_date);
+            const daysSinceLastInteraction = Math.floor((NOW - lastInteraction) / DAY_IN_MS);
+            const decayRate = 0.01 * (100 - contact.x_score) / 100;
+            const newYFactorDecay = Math.max(0, contact.y_factor_decay - (decayRate * daysSinceLastInteraction));
+
+            const { error: updateError } = await supabase
+                .from('contacts')
+                .update({ y_factor_decay: newYFactorDecay })
+                .eq('id', contact.id)
+                .eq('user_id', username);
+
+            if (updateError) {
+                console.error('Supabase update decay error:', updateError);
+                throw new Error('Failed to update Y-Factor Decay.');
+            }
+        }
+
+        res.json({ success: true, message: 'Y-Factor Decay updated successfully!' });
+
+    } catch (error) {
+        console.error('Error in /api/update-decay endpoint:', error);
+        res.status(500).json({ success: false, error: 'An error occurred while updating Y-Factor Decay.' });
     }
 });
 
@@ -453,7 +499,7 @@ app.get('/api/dashboard', async (req, res) => {
     try {
         const { data: contacts, error: contactError } = await supabase
             .from('contacts')
-            .select('name, last_interaction_date, x_score, y_factor_decay')
+            .select('id, name, last_interaction_date, x_score, y_factor_decay, where_met, conversation_summary')
             .eq('user_id', username)
             .order('last_interaction_date', { ascending: false });
 
@@ -472,6 +518,7 @@ app.get('/api/dashboard', async (req, res) => {
         }
 
         const notifications = [];
+        const reconnectionTodos = [];
         const NOW = new Date();
         const DAY_IN_MS = 24 * 60 * 60 * 1000;
 
@@ -479,12 +526,21 @@ app.get('/api/dashboard', async (req, res) => {
             const lastInteraction = new Date(contact.last_interaction_date);
             const daysSinceLastInteraction = Math.floor((NOW - lastInteraction) / DAY_IN_MS);
 
-            if (daysSinceLastInteraction > 30) {
+            if (daysSinceLastInteraction > 30 || contact.y_factor_decay < 0.3) {
+                const reconnectTemplate = `Hi ${contact.name}, it’s been a while since we connected at ${contact.where_met || 'our last meeting'}. I’d love to catch up and discuss ${contact.conversation_summary || 'our previous topics'} further!`;
                 notifications.push({
-                    id: `decay-${contact.name}-${Date.now()}`,
-                    message: `🚩 Reconnect with ${contact.name}! It's been ${daysSinceLastInteraction} days.`,
+                    id: `reconnect-${contact.name}-${Date.now()}`,
+                    message: `🚩 Reconnect with ${contact.name}! It's been ${daysSinceLastInteraction} days (Y-Factor: ${contact.y_factor_decay.toFixed(2)}).`,
                     type: 'contact',
-                    suggestion: `Consider sending a follow-up message or scheduling a quick call to re-establish the connection. Their X-score might be decaying!`
+                    suggestion: reconnectTemplate
+                });
+                reconnectionTodos.push({
+                    user_id: username,
+                    description: `Reconnect with ${contact.name}`,
+                    priority: 'medium',
+                    completed: false,
+                    created_at: NOW.toISOString(),
+                    contact_id: contact.id
                 });
             } else if (daysSinceLastInteraction > 14) {
                 notifications.push({
@@ -503,12 +559,34 @@ app.get('/api/dashboard', async (req, res) => {
             }
         });
 
+        // Insert reconnection todos if they don't already exist
+        for (const todo of reconnectionTodos) {
+            const { data: existingTodo, error: checkError } = await supabase
+                .from('todos')
+                .select('id')
+                .eq('user_id', username)
+                .eq('description', todo.description)
+                .eq('completed', false)
+                .single();
+
+            if (!existingTodo && !checkError) {
+                const { error: insertError } = await supabase
+                    .from('todos')
+                    .insert([todo]);
+
+                if (insertError) {
+                    console.error('Error inserting reconnection todo:', insertError);
+                }
+            }
+        }
+
         res.json({
             todoList: todoList || [],
             notifications: notifications,
             templates: [
                 { title: 'Investor Follow-up', content: 'Hi [Name], great meeting! I wanted to follow up on [topic]...' },
-                { title: 'New Connection Intro', content: 'Hi [Name], enjoyed connecting at [Event]!... Looking forward to [next steps]' }
+                { title: 'New Connection Intro', content: 'Hi [Name], enjoyed connecting at [Event]!... Looking forward to [next steps]' },
+                { title: 'Reconnect', content: 'Hi [Name], it’s been a while since we connected at [Event]. I’d love to catch up!' }
             ]
         });
     } catch (error) {

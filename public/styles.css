@@ -92,6 +92,7 @@ body {
 /* === Main Content Styles === */
 .main-content {
   margin-left: var(--sidebar-width);
+  width: 80%;
   flex-grow: 1;
   padding: 20px;
   background-color: var(--background-color);
@@ -114,6 +115,7 @@ body {
 
 /* Header Section for Contacts Page (h1 + Timeline Button) */
 .header-section {
+  width: auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -188,6 +190,7 @@ body {
   align-items: end;
   display: flex;
   justify-content: flex-end;
+  margin-bottom: 10px;
 }
 .add-button-small#addTodoBtn {
   font-size: 14px;
@@ -371,6 +374,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 30px;
+  width: auto;
+  scrollbar-width: thin; /* Slim scrollbar */
+  scrollbar-color: var(--primary-color) var(--background-color);
 }
 
 /* Contacts Table Section */
@@ -390,15 +396,16 @@ body {
 }
 
 .table-responsive {
-  overflow-x: auto; /* Changed from hidden to auto */
+  overflow-x: auto; /* This enables horizontal scrolling for the table */
   border: 1px solid var(--border-color);
   border-radius: 6px;
+  -webkit-overflow-scrolling: touch; /* Improves scrolling on iOS */
 }
 
 #contactsTable {
-  width: 100%;
+  width: 100%; /* Important: Table can grow beyond container if needed for scroll */
   border-collapse: collapse;
-  /* Removed table-layout: fixed; */
+  /* Removed table-layout: fixed; to allow content-based width */
 }
 
 #contactsTable th,
@@ -409,49 +416,49 @@ body {
   color: var(--text-color-light);
   vertical-align: top;
   font-size: 0.85em;
-  white-space: nowrap; /* Prevent content from wrapping */
+  white-space: nowrap; /* Prevent content from wrapping by default */
   overflow: hidden; /* Hide overflow content */
   text-overflow: ellipsis; /* Add ellipsis for overflowed text */
 }
 
-/* Removed fixed column widths to allow for flexible sizing */
+/* Set min-widths to ensure columns have enough space, allowing overflow-x: auto to kick in */
 #contactsTable th:nth-child(1),
 #contactsTable td:nth-child(1) {
-  min-width: 100px; /* Name */
+  min-width: 120px; /* Name */
 }
 #contactsTable th:nth-child(2),
 #contactsTable td:nth-child(2) {
-  min-width: 120px; /* How Met */
+  min-width: 150px; /* How Met */
 }
 #contactsTable th:nth-child(3),
 #contactsTable td:nth-child(3) {
-  min-width: 120px; /* Where Met */
+  min-width: 150px; /* Where Met */
 }
 #contactsTable th:nth-child(4),
 #contactsTable td:nth-child(4) {
-  min-width: 200px; /* Conversation Summary */
+  min-width: 250px; /* Conversation Summary */
   white-space: normal; /* Allow wrapping for summaries */
   overflow-wrap: break-word; /* Wrap long words */
 }
 #contactsTable th:nth-child(5),
 #contactsTable td:nth-child(5) {
-  min-width: 200px; /* Person Details */
+  min-width: 250px; /* Person Details */
   white-space: normal; /* Allow wrapping for details */
   overflow-wrap: break-word; /* Wrap long words */
 }
 #contactsTable th:nth-child(6),
 #contactsTable td:nth-child(6) {
-  min-width: 80px; /* X-Score */
+  min-width: 90px; /* X-Score */
 }
 #contactsTable th:nth-child(7),
 #contactsTable td:nth-child(7) {
-  min-width: 120px; /* Last Interaction */
+  min-width: 140px; /* Last Interaction */
 }
 #contactsTable th:nth-child(8),
 #contactsTable td:nth-child(8) {
-  min-width: 100px; /* Actions */
+  min-width: 120px; /* Actions */
+  white-space: nowrap; /* Ensure action buttons stay in one line */
 }
-
 
 #contactsTable th {
   background-color: var(--primary-color);
@@ -518,19 +525,19 @@ body {
 .kanban-board {
   display: flex;
   gap: 15px;
-  overflow-x: auto;
+  overflow-x: auto; /* This enables horizontal scrolling for the kanban board */
   padding-bottom: 8px;
-  flex-wrap: wrap; /* Allow columns to wrap */
-  justify-content: center; /* Center columns when wrapped */
+  flex-wrap: nowrap; /* Ensure columns stay in a single row */
+  -webkit-overflow-scrolling: touch; /* Improves scrolling on iOS */
 }
 
 .kanban-column {
   background-color: var(--background-color);
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  flex-shrink: 0;
-  width: 280px; /* Increased width slightly for better content display */
-  max-width: 100%; /* Ensure it doesn't exceed parent width on small screens */
+  flex-shrink: 0; /* Prevent columns from shrinking below their content/min-width */
+  width: 280px; /* Fixed width for columns */
+  min-width: 280px; /* Ensure columns don't get smaller */
   padding: 12px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   display: flex;
@@ -1175,35 +1182,25 @@ label {
   }
   /* Table Responsive */
   .table-responsive {
-    overflow-x: auto; /* Allow horizontal scroll on smaller screens */
-  }
-  #contactsTable {
-    /* No fixed table-layout */
+    overflow-x: auto; /* Ensure horizontal scroll on smaller screens for the table */
   }
   #contactsTable th,
   #contactsTable td {
     padding: 6px 8px;
     font-size: 0.8em;
-    /* Removed specific width adjustments here as they are now handled by content + min-width and overflow */
-    white-space: nowrap; /* Keep content on a single line by default */
+    /* Revert display: none for mobile, let overflow-x handle it */
+    display: table-cell;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  /* Ensure all columns are displayed on mobile */
-  #contactsTable td:nth-child(n + 4) {
-    display: table-cell; /* Revert hidden columns to display */
-  }
-  #contactsTable th:nth-child(n + 4) {
-    display: table-cell; /* Revert hidden columns to display */
-  }
   /* Kanban adjustments for small screens */
   .kanban-board {
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-wrap: nowrap; /* Keep it as nowrap for horizontal scroll */
   }
   .kanban-column {
-    width: 90%; /* Adjust width for better fit on small screens */
-    margin-bottom: 15px;
+    width: 280px; /* Maintain fixed width to enforce scrolling */
+    min-width: 280px; /* Ensure they don't shrink */
   }
   /* Timeline adjustments for small screens */
   .timeline-wrapper {

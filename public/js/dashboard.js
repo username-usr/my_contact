@@ -1,5 +1,4 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // Ensure a username is set for API calls, default to 'guest_user'
   if (!localStorage.getItem("username")) {
     localStorage.setItem("username", "guest_user");
   }
@@ -67,7 +66,6 @@ document.addEventListener("DOMContentLoaded", () => {
           currentContactData = { ...currentContactData, ...data.extractedData };
           questionCount = data.questionCount;
 
-          // Show save button when readyToSave is true
           if (data.readyToSave) {
             saveContactButton.style.display = "block";
             if (data.missingFields.length > 0) {
@@ -164,16 +162,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function fetchDashboardData() {
     const username = localStorage.getItem("username");
-    fetch(`/api/dashboard?username=${username}`)
-      .then((response) => response.json())
-      .then((data) => {
-        updateTodoList(data.todoList);
-        updateNotifications(data.notifications);
-        updateTemplates(data.templates);
-      })
-      .catch((error) => {
-        console.error("Error fetching dashboard data:", error);
-      });
+    // Update Y-Factor Decay before fetching dashboard data
+    fetch('/api/update-decay', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username })
+    }).then(() => {
+      fetch(`/api/dashboard?username=${username}`)
+        .then((response) => response.json())
+        .then((data) => {
+          updateTodoList(data.todoList);
+          updateNotifications(data.notifications);
+          updateTemplates(data.templates);
+        })
+        .catch((error) => {
+          console.error("Error fetching dashboard data:", error);
+        });
+    });
   }
 
   function updateTodoList(todoList) {
@@ -201,7 +208,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const taskContent = document.createElement('div');
             taskContent.className = 'task-content';
-            taskContent.textContent = task.description;
+            if (task.description.startsWith('Reconnect with') && task.contact_id) {
+                const link = document.createElement('a');
+                link.href = `/timeline?contactId=${task.contact_id}`;
+                link.textContent = task.description;
+                taskContent.appendChild(link);
+            } else {
+                taskContent.textContent = task.description;
+            }
 
             todoItem.appendChild(checkbox);
             todoItem.appendChild(taskContent);
