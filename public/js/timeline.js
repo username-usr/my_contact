@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Render the timeline
+    // Render the timeline with a tree-like structure
     function renderTimeline(interactions) {
         timelineContainer.innerHTML = ''; // Clear existing timeline
 
@@ -109,17 +109,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
         noTimelineMessage.style.display = 'none';
 
-        interactions.forEach(interaction => {
+        interactions.forEach((interaction, index) => {
             const item = document.createElement('div');
-            item.className = 'timeline-item';
+            // Alternate left and right for each item
+            item.className = `timeline-item ${index % 2 === 0 ? 'left' : 'right'}`;
 
-            const date = document.createElement('h3');
-            date.textContent = new Date(interaction.interaction_date).toLocaleDateString();
-            item.appendChild(date);
+            // Create the node (dot) on the central timeline
+            const node = document.createElement('div');
+            node.className = 'timeline-node';
+            item.appendChild(node);
 
+            // Create the branch (horizontal line)
+            const branch = document.createElement('div');
+            branch.className = 'timeline-branch';
+            item.appendChild(branch);
+
+            // Create the content box
             const content = document.createElement('div');
             content.className = 'timeline-content';
             content.innerHTML = `
+                <h3>${new Date(interaction.interaction_date).toLocaleDateString()}</h3>
                 <p><strong>Conversation:</strong> ${interaction.conversation_summary || 'N/A'}</p>
                 <p><strong>Details:</strong> ${interaction.person_details || 'N/A'}</p>
                 <p><strong>X-Score:</strong> ${interaction.x_score}/10</p>
