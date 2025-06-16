@@ -1,9 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Ensure a username is set for API calls, default to 'guest_user'
-    if (!localStorage.getItem('username')) {
-        localStorage.setItem('username', 'guest_user');
-    }
-
     // Cache DOM elements
     const contactsTableBody = document.querySelector('#contactsTable tbody');
     const kanbanBoard = document.getElementById('kanbanBoard');
@@ -19,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalTitle = document.getElementById('modalTitle');
     const noContactsMessage = document.getElementById('noContactsMessage');
     const noKanbanContactsMessage = document.getElementById('noKanbanContactsMessage');
+    const viewTimelineBtn = document.getElementById('viewTimelineBtn');
 
     // Edit form fields
     const editContactId = document.getElementById('editContactId');
@@ -31,6 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const editContactType = document.getElementById('editContactType');
 
     let allContactsData = []; // Store all contacts fetched from the server
+    const username = localStorage.getItem('username') || 'guest_user';
+
+    // Navigate to timeline page when the "View Timeline" button is clicked
+    viewTimelineBtn.addEventListener('click', () => {
+        window.location.href = '/timeline';
+    });
 
     // Fetch and display contacts on load
     fetchContacts();
@@ -43,14 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Core Data Fetching ---
     async function fetchContacts() {
-        const username = localStorage.getItem('username');
-        if (!username) {
-            console.warn('Username not found. Cannot fetch contacts.');
-            return;
-        }
-
         try {
-            const response = await fetch(`/api/contacts?username=${username}`);
+            const response = await fetch(`/api/contacts?username=${encodeURIComponent(username)}`);
             const data = await response.json();
 
             if (data.success) {
@@ -92,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (xScore === 0) {
                 console.warn(`Contact ${contact.name} (ID: ${contact.id}) has X-Score 0. Check data.`, contact);
             }
-            row.insertCell().textContent = `${xScore}/100`;
+            row.insertCell().textContent = `${xScore}/10`;
             row.insertCell().textContent = contact.last_interaction_date ? new Date(contact.last_interaction_date).toLocaleDateString() : 'N/A';
 
             const actionsCell = row.insertCell();
@@ -170,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const xScore = contact.x_score !== undefined && contact.x_score !== null ? contact.x_score : 0;
         card.innerHTML = `
             <h4>${contact.name}</h4>
-            <p><strong>X-Score:</strong> ${xScore}/100</p>
+            <p><strong>X-Score:</strong> ${xScore}/10</p>
             <p><strong>Last:</strong> ${contact.last_interaction_date ? new Date(contact.last_interaction_date).toLocaleDateString() : 'N/A'}</p>
             <div class="kanban-card-actions">
                 <button class="action-button edit-button" title="Edit"><i class="fas fa-edit"></i></button>
@@ -238,7 +234,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     saveEditButton.addEventListener('click', async () => {
         const id = editContactId.value;
-        const username = localStorage.getItem('username');
         const updatedData = {
             name: editName.value,
             how_met: editHowMet.value,
@@ -252,7 +247,9 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/api/contacts/update', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify({ id, username, updatedData })
             });
             const data = await response.json();
@@ -272,7 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     sendAiPromptButton.addEventListener('click', async () => {
         const id = editContactId.value;
-        const username = localStorage.getItem('username');
         const prompt = aiPromptInput.value.trim();
         const updateType = document.querySelector('input[name="aiUpdateType"]:checked').value;
 
@@ -287,7 +283,9 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/api/contacts/ai-update', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify({ id, username, prompt, updateType })
             });
             const data = await response.json();
@@ -319,16 +317,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function deleteContact(contactId) {
-        const username = localStorage.getItem('username');
-        if (!username) {
-            alert('Username not found. Cannot delete contact.');
-            return;
-        }
-
         try {
-            const response = await fetch(`/api/contacts/delete/${contactId}?username=${username}`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' }
+            const response = await fetch(`/api/contacts/delete/${contactId}?username=${encodeURIComponent(username)}`, {
+                method: 'DELETE'
             });
             const data = await response.json();
 
@@ -345,16 +336,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function updateContactType(contactId, newType) {
-        const username = localStorage.getItem('username');
-        if (!username) {
-            alert('Username not found. Cannot update contact type.');
-            return false;
-        }
-
         try {
             const response = await fetch('/api/contacts/update', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify({
                     id: contactId,
                     username,
