@@ -23,7 +23,10 @@
 
     <!-- Main Content -->
     <main class="main-content">
-        <h1>Contacts</h1>
+        <div class="header-section">
+            <h1>Contacts</h1>
+            <button id="viewTimelineBtn" class="timeline-button"><i class="fas fa-clock"></i> View Timeline</button>
+        </div>
         
         <div class="contacts-wrapper">
             <!-- Contacts Table Section -->
@@ -66,7 +69,7 @@
     <!-- Edit/AI Contact Modal -->
     <div class="modal" id="contactEditModal">
         <div class="modal-content contact-modal-content">
-            <span class="close-button" id="closeContactEditModal">&times;</span>
+            <span class="close-button" id="closeContactEditModal">×</span>
             <div class="modal-header-with-ai">
                 <button id="aiEditToggleBtn" class="ai-button"><i class="fas fa-star"></i></button>
                 <h2 id="modalTitle">Edit Contact</h2>

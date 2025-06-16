@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Assistant - Timeline</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <!-- Main Content -->
+    <main class="main-content timeline-page">
+        <div class="timeline-wrapper">
+            <!-- Contact Info Sidebar -->
+            <aside class="sidebar contact-info-sidebar">
+                <div class="sidebar-header">
+                    <h2>Network Assistant</h2>
+                </div>
+                <h3>Contacts</h3>
+                <div id="contactList" class="contact-list">
+                    <!-- Contact items will be dynamically added here -->
+                </div>
+                <p id="noContactsMessage" class="empty-message" style="display: none;">No contacts available.</p>
+            </aside>
+
+            <!-- Timeline Section -->
+            <section class="timeline-section">
+                <h1>Interaction Timeline</h1>
+                <div id="timelineContainer" class="timeline-container">
+                    <!-- Timeline items will be dynamically added here -->
+                </div>
+                <p id="noTimelineMessage" class="empty-message" style="display: none;">Select a contact to view their timeline.</p>
+            </section>
+        </div>
+    </main>
+
+    <script src="js/timeline.js"></script>
+</body>
+</html>

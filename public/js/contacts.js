@@ -1,9 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Ensure a username is set for API calls, default to 'guest_user'
-    if (!localStorage.getItem('username')) {
-        localStorage.setItem('username', 'guest_user');
-    }
-
     // Cache DOM elements
     const contactsTableBody = document.querySelector('#contactsTable tbody');
     const kanbanBoard = document.getElementById('kanbanBoard');
@@ -19,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalTitle = document.getElementById('modalTitle');
     const noContactsMessage = document.getElementById('noContactsMessage');
     const noKanbanContactsMessage = document.getElementById('noKanbanContactsMessage');
+    const viewTimelineBtn = document.getElementById('viewTimelineBtn');
 
     // Edit form fields
     const editContactId = document.getElementById('editContactId');
@@ -31,6 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const editContactType = document.getElementById('editContactType');
 
     let allContactsData = []; // Store all contacts fetched from the server
+    const username = localStorage.getItem('username') || 'guest_user';
+
+    // Navigate to timeline page when the "View Timeline" button is clicked
+    viewTimelineBtn.addEventListener('click', () => {
+        window.location.href = '/timeline';
+    });
 
     // Fetch and display contacts on load
     fetchContacts();
@@ -43,14 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Core Data Fetching ---
     async function fetchContacts() {
-        const username = localStorage.getItem('username');
-        if (!username) {
-            console.warn('Username not found. Cannot fetch contacts.');
-            return;
-        }
-
         try {
-            const response = await fetch(`/api/contacts?username=${username}`);
+            const response = await fetch(`/api/contacts?username=${encodeURIComponent(username)}`);
             const data = await response.json();
 
             if (data.success) {
@@ -87,7 +83,12 @@ document.addEventListener('DOMContentLoaded', () => {
             row.insertCell().textContent = contact.where_met || 'N/A';
             row.insertCell().textContent = contact.conversation_summary || 'N/A';
             row.insertCell().textContent = contact.person_details || 'N/A';
-            row.insertCell().textContent = contact.x_score !== undefined && contact.x_score !== null ? contact.x_score : 'N/A';
+            // Handle x_score explicitly
+            const xScore = contact.x_score !== undefined && contact.x_score !== null ? contact.x_score : 0;
+            if (xScore === 0) {
+                console.warn(`Contact ${contact.name} (ID: ${contact.id}) has X-Score 0. Check data.`, contact);
+            }
+            row.insertCell().textContent = `${xScore}/10`;
             row.insertCell().textContent = contact.last_interaction_date ? new Date(contact.last_interaction_date).toLocaleDateString() : 'N/A';
 
             const actionsCell = row.insertCell();
@@ -162,9 +163,10 @@ document.addEventListener('DOMContentLoaded', () => {
         card.setAttribute('data-contact-id', contact.id);
         card.draggable = true; // Make cards draggable
 
+        const xScore = contact.x_score !== undefined && contact.x_score !== null ? contact.x_score : 0;
         card.innerHTML = `
             <h4>${contact.name}</h4>
-            <p><strong>X-Score:</strong> ${contact.x_score !== undefined && contact.x_score !== null ? contact.x_score : 'N/A'}</p>
+            <p><strong>X-Score:</strong> ${xScore}/10</p>
             <p><strong>Last:</strong> ${contact.last_interaction_date ? new Date(contact.last_interaction_date).toLocaleDateString() : 'N/A'}</p>
             <div class="kanban-card-actions">
                 <button class="action-button edit-button" title="Edit"><i class="fas fa-edit"></i></button>
@@ -232,7 +234,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     saveEditButton.addEventListener('click', async () => {
         const id = editContactId.value;
-        const username = localStorage.getItem('username');
         const updatedData = {
             name: editName.value,
             how_met: editHowMet.value,
@@ -246,7 +247,9 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/api/contacts/update', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify({ id, username, updatedData })
             });
             const data = await response.json();
@@ -266,7 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     sendAiPromptButton.addEventListener('click', async () => {
         const id = editContactId.value;
-        const username = localStorage.getItem('username');
         const prompt = aiPromptInput.value.trim();
         const updateType = document.querySelector('input[name="aiUpdateType"]:checked').value;
 
@@ -281,16 +283,23 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/api/contacts/ai-update', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify({ id, username, prompt, updateType })
             });
             const data = await response.json();
 
             if (data.success) {
                 aiUpdateResponseDiv.textContent = 'AI Response: ' + data.message;
-                // Optionally, update the local contact data with AI suggested changes immediately
-                // and then re-render, or just fetchContacts() after a short delay
-                fetchContacts(); // Re-render to reflect potential score/date changes
+                // Update standard edit form fields with AI-suggested changes
+                const contact = allContactsData.find(c => c.id === id);
+                if (contact && data.updatedContact) {
+                    editConversationSummary.value = data.updatedContact.conversation_summary || contact.conversation_summary || '';
+                    editPersonDetails.value = data.updatedContact.person_details || contact.person_details || '';
+                    editXScore.value = data.updatedContact.x_score !== undefined ? data.updatedContact.x_score : contact.x_score || '';
+                }
+                fetchContacts(); // Re-render to reflect changes
             } else {
                 aiUpdateResponseDiv.textContent = 'AI Error: ' + (data.error || 'Unknown AI error.');
             }
@@ -308,16 +317,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function deleteContact(contactId) {
-        const username = localStorage.getItem('username');
-        if (!username) {
-            alert('Username not found. Cannot delete contact.');
-            return;
-        }
-
         try {
-            const response = await fetch(`/api/contacts/delete/${contactId}?username=${username}`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' }
+            const response = await fetch(`/api/contacts/delete/${contactId}?username=${encodeURIComponent(username)}`, {
+                method: 'DELETE'
             });
             const data = await response.json();
 
@@ -334,89 +336,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function updateContactType(contactId, newType) {
-    const username = localStorage.getItem('username');
-    if (!username) {
-        alert('Username not found. Cannot update contact type.');
-        return false;
-    }
+        try {
+            const response = await fetch('/api/contacts/update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: contactId,
+                    username,
+                    updatedData: { contact_type: newType }
+                })
+            });
+            const data = await response.json();
 
-    try {
-        const response = await fetch('/api/contacts/update', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                id: contactId,
-                username,
-                updatedData: { contact_type: newType }
-            })
-        });
-        const data = await response.json();
-
-        if (data.success) {
-            console.log(`Contact ${contactId} updated to type ${newType}`);
-            fetchContacts(); // Re-render table and Kanban to reflect the change
-            return true;
-        } else {
-            alert('Failed to update contact type: ' + (data.error || 'Unknown error'));
+            if (data.success) {
+                console.log(`Contact ${contactId} updated to type ${newType}`);
+                fetchContacts(); // Re-render table and Kanban to reflect the change
+                return true;
+            } else {
+                alert('Failed to update contact type: ' + (data.error || 'Unknown error'));
+                return false;
+            }
+        } catch (error) {
+            console.error('Network error updating contact type:', error);
+            alert('Network error during update.');
             return false;
         }
-    } catch (error) {
-        console.error('Network error updating contact type:', error);
-        alert('Network error during update.');
-        return false;
     }
-}
-
-function renderKanbanBoard(contacts) {
-    kanbanBoard.innerHTML = ''; // Clear existing columns
-    if (!contacts || contacts.length === 0) {
-        noKanbanContactsMessage.style.display = 'block';
-        return;
-    }
-    noKanbanContactsMessage.style.display = 'none';
-
-    const categorizedContacts = CONTACT_TYPES.reduce((acc, type) => {
-        acc[type] = [];
-        return acc;
-    }, {});
-
-    contacts.forEach(contact => {
-        const type = contact.contact_type && CONTACT_TYPES.includes(contact.contact_type) ? contact.contact_type : 'Other';
-        categorizedContacts[type].push(contact);
-    });
-
-    CONTACT_TYPES.forEach(type => {
-        const column = document.createElement('div');
-        column.className = 'kanban-column';
-        column.setAttribute('data-type', type);
-        column.innerHTML = `<h3>${type}</h3><div class="kanban-cards-container" id="kanban-${type.replace(/\s/g, '')}"></div>`;
-        kanbanBoard.appendChild(column);
-
-        const cardsContainer = column.querySelector('.kanban-cards-container');
-        categorizedContacts[type].forEach(contact => {
-            cardsContainer.appendChild(createKanbanCard(contact));
-        });
-
-        // Make the cards container sortable
-        new Sortable(cardsContainer, {
-            group: 'kanban', // Allow dragging between groups
-            animation: 150,
-            onEnd: async function (evt) {
-                const movedItemId = evt.item.dataset.contactId;
-                const newType = evt.to.closest('.kanban-column').dataset.type;
-                const oldType = evt.from.closest('.kanban-column').dataset.type;
-
-                if (newType !== oldType) {
-                    const success = await updateContactType(movedItemId, newType);
-                    if (!success) {
-                        // Revert the UI change by re-rendering the Kanban board
-                        fetchContacts();
-                    }
-                }
-            }
-        });
-    });
-}
-    // --- Drag & Drop (SortableJS) Initialization ---
-    // Initialized within renderKanbanBoard function now for dynamic columns
 });

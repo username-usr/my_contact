@@ -1,32 +1,25 @@
 document.addEventListener("DOMContentLoaded", () => {
   // Ensure a username is set for API calls, default to 'guest_user'
-  // This is crucial for linking contacts to a user, even if not explicitly asked
   if (!localStorage.getItem("username")) {
     localStorage.setItem("username", "guest_user");
   }
 
-  fetchDashboardData(); // Always fetch dashboard data on load
-
-  // Set up periodic refresh for dashboard data (including notifications)
+  fetchDashboardData();
   setInterval(fetchDashboardData, 30000);
 
   const addContactBtn = document.getElementById("addContactBtn");
   const contactInputModal = document.getElementById("contactInputModal");
-  const closeContactInputModalBtn = document.getElementById(
-    "closeContactInputModal"
-  );
+  const closeContactInputModalBtn = document.getElementById("closeContactInputModal");
   const contactMessageInput = document.getElementById("contactMessageInput");
-  const sendContactMessageButton = document.getElementById(
-    "sendContactMessageButton"
-  );
+  const sendContactMessageButton = document.getElementById("sendContactMessageButton");
   const contactChatMessages = document.getElementById("contactChatMessages");
   const saveContactButton = document.getElementById("saveContactButton");
 
-  let currentContactData = {}; // Stores data collected for the current contact
+  let currentContactData = {};
+  let questionCount = 0;
 
   addContactBtn.addEventListener("click", () => {
     contactInputModal.classList.add("active");
-    // Reset chat and collected data when opening
     contactChatMessages.innerHTML = `
             <div class="message ai">
                 <div class="message-content">Welcome! Please tell me about the person you met. Include their name, how you met, where you met, and a brief summary of your conversation.</div>
@@ -35,8 +28,9 @@ document.addEventListener("DOMContentLoaded", () => {
         `;
     contactMessageInput.value = "";
     currentContactData = {};
-    saveContactButton.style.display = "none"; // Hide save button initially
-    addTimestampToLastMessage(contactChatMessages); // Add timestamp to initial AI message
+    questionCount = 0;
+    saveContactButton.style.display = "none";
+    addTimestampToLastMessage(contactChatMessages);
   });
 
   closeContactInputModalBtn.addEventListener("click", () => {
@@ -45,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function sendContactMessage() {
     const message = contactMessageInput.value.trim();
-    const username = localStorage.getItem("username"); // Get username from localStorage
+    const username = localStorage.getItem("username");
 
     if (!message || !username) {
       return;
@@ -54,7 +48,6 @@ document.addEventListener("DOMContentLoaded", () => {
     addMessageToContactChat("user", message);
     contactMessageInput.value = "";
 
-    // Send message to new AI endpoint for contact processing
     fetch("/api/add-contact-ai", {
       method: "POST",
       headers: {
@@ -63,48 +56,36 @@ document.addEventListener("DOMContentLoaded", () => {
       body: JSON.stringify({
         username,
         message,
-        collectedContactData: currentContactData, // Send previously collected data for context
+        collectedContactData: currentContactData,
+        questionCount
       }),
     })
       .then((response) => response.json())
       .then((data) => {
         if (data.success) {
           addMessageToContactChat("ai", data.aiResponse);
-          // Merge new extracted data with previously collected data
           currentContactData = { ...currentContactData, ...data.extractedData };
+          questionCount = data.questionCount;
 
-          // Logic to decide when to show save button (e.g., when Name, How Met, Where Met, Summary are present)
-          const requiredFields = [
-            "name",
-            "how_met",
-            "where_met",
-            "conversation_summary",
-          ];
-          const allRequiredPresent = requiredFields.every(
-            (field) => currentContactData[field]
-          );
-
-          // FIX: The save contact button should appear as soon as the core fields are present.
-          // The x_score is optional and defaults on the server if not provided.
-          if (allRequiredPresent) {
+          // Show save button when readyToSave is true
+          if (data.readyToSave) {
             saveContactButton.style.display = "block";
+            if (data.missingFields.length > 0) {
+              addMessageToContactChat("ai", `You can save the contact now. Note: Some details are missing (${data.missingFields.join(", ")}).`);
+            } else {
+              addMessageToContactChat("ai", `All required details provided! You can save the contact now.`);
+            }
           } else {
             saveContactButton.style.display = "none";
           }
         } else {
           console.error("Error from AI contact endpoint:", data.error);
-          addMessageToContactChat(
-            "ai",
-            data.error || "Sorry, an error occurred with the AI processing."
-          );
+          addMessageToContactChat("ai", data.error || "Sorry, an error occurred with the AI processing.");
         }
       })
       .catch((error) => {
         console.error("Network error sending contact message:", error);
-        addMessageToContactChat(
-          "ai",
-          "Sorry, a network error occurred. Please try again."
-        );
+        addMessageToContactChat("ai", "Sorry, a network error occurred. Please try again.");
       });
   }
 
@@ -134,7 +115,6 @@ document.addEventListener("DOMContentLoaded", () => {
     contactChatMessages.scrollTop = contactChatMessages.scrollHeight;
   }
 
-  // Helper to add timestamp to initial AI message
   function addTimestampToLastMessage(container) {
     const lastMessage = container.lastElementChild;
     if (lastMessage) {
@@ -148,13 +128,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // Function to save contact to database
   saveContactButton.addEventListener("click", () => {
-    const username = localStorage.getItem("username"); // Get username from localStorage
+    const username = localStorage.getItem("username");
     if (!username) {
-      alert(
-        "A username is required to save contacts. Please ensure localStorage is working."
-      );
+      alert("A username is required to save contacts. Please ensure localStorage is working.");
       return;
     }
 
@@ -172,8 +149,8 @@ document.addEventListener("DOMContentLoaded", () => {
       .then((data) => {
         if (data.success) {
           alert("Contact saved successfully!");
-          contactInputModal.classList.remove("active"); // Close modal
-          fetchDashboardData(); // Refresh dashboard data after saving contact
+          contactInputModal.classList.remove("active");
+          fetchDashboardData();
         } else {
           console.error("Failed to save contact:", data.error);
           alert("Failed to save contact: " + data.error);
@@ -185,14 +162,13 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   });
 
-  // --- Dashboard Data Fetching (updated to include notifications) ---
   function fetchDashboardData() {
     const username = localStorage.getItem("username");
-    fetch(`/api/dashboard?username=${username}`) // Pass username for notifications
+    fetch(`/api/dashboard?username=${username}`)
       .then((response) => response.json())
       .then((data) => {
         updateTodoList(data.todoList);
-        updateNotifications(data.notifications); // Handle notifications
+        updateNotifications(data.notifications);
         updateTemplates(data.templates);
       })
       .catch((error) => {
@@ -200,9 +176,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   }
 
-  // In dashboard.js, inside the DOMContentLoaded listener
-
-function updateTodoList(todoList) {
+  function updateTodoList(todoList) {
     const todoListContainer = document.getElementById('todoList');
     todoListContainer.innerHTML = '';
 
@@ -212,18 +186,13 @@ function updateTodoList(todoList) {
     }
 
     todoList.forEach(task => {
-        if (!task.completed) { // Only display uncompleted tasks as per original logic
+        if (!task.completed) {
             const todoItem = document.createElement('div');
-            todoItem.className = `todo-item`; // Remove priority class here for random color
+            todoItem.className = `todo-item`;
 
-            // Generate a random light color
-            const randomHue = Math.floor(Math.random() * 360); // 0-359
-            const randomLightColor = `hsl(${randomHue}, 70%, 85%)`; // Light color using HSL
-
-            // Apply the random color as a left border using inline style
-            // This will override any .priority class border-left styles if they conflict.
+            const randomHue = Math.floor(Math.random() * 360);
+            const randomLightColor = `hsl(${randomHue}, 70%, 85%)`;
             todoItem.style.borderLeft = `3px solid ${randomLightColor}`;
-
 
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
@@ -241,8 +210,6 @@ function updateTodoList(todoList) {
     });
 }
 
-// ... (rest of your dashboard.js code) ...
-
   function updateNotifications(notifications) {
     const notificationsContainer = document.getElementById("notifications");
     notificationsContainer.innerHTML = "";
@@ -254,7 +221,6 @@ function updateTodoList(todoList) {
 
     notifications.forEach((notification) => {
       const notificationElement = document.createElement("div");
-      // Add classes based on notification type for styling
       notificationElement.className = `notification ${notification.type}`;
 
       const messageHeader = document.createElement("h3");
@@ -296,7 +262,7 @@ function updateTodoList(todoList) {
   }
 
   function updateTaskStatus(taskId, completed) {
-    const username = localStorage.getItem("username"); // Get username from localStorage
+    const username = localStorage.getItem("username");
     fetch("/api/update-task", {
       method: "POST",
       headers: {
@@ -305,7 +271,7 @@ function updateTodoList(todoList) {
       body: JSON.stringify({
         taskId,
         completed,
-        username, // Add username to the body
+        username,
       }),
     })
       .then((response) => response.json())
@@ -321,7 +287,6 @@ function updateTodoList(todoList) {
       });
   }
 
-  // --- New To-Do Functionality ---
   const addTodoBtn = document.getElementById("addTodoBtn");
   const addTodoModal = document.getElementById("addTodoModal");
   const closeTodoModalBtn = document.getElementById("closeTodoModal");
@@ -330,7 +295,7 @@ function updateTodoList(todoList) {
 
   addTodoBtn.addEventListener("click", () => {
     addTodoModal.classList.add("active");
-    todoDescriptionInput.value = ""; // Clear input when opening
+    todoDescriptionInput.value = "";
     todoDescriptionInput.focus();
   });
 
@@ -355,7 +320,7 @@ function updateTodoList(todoList) {
       body: JSON.stringify({
         username,
         description,
-        priority: "low", // Default priority for new tasks from dashboard
+        priority: "low",
       }),
     })
       .then((response) => response.json())
@@ -363,7 +328,7 @@ function updateTodoList(todoList) {
         if (data.success) {
           alert("To-Do item added successfully!");
           addTodoModal.classList.remove("active");
-          fetchDashboardData(); // Refresh the to-do list
+          fetchDashboardData();
         } else {
           console.error("Failed to add to-do:", data.error);
           alert("Failed to add to-do: " + data.error);
